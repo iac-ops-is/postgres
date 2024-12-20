@@ -1,0 +1,17 @@
+- name: deploy postgres cluster
+  become: yes
+  hosts: db
+  roles:
+    - iac-ops-is.postgres
+  vars:
+    postgres_data_directory: /data
+    postgres_replica_password: ushed9duiad23j390e1=
+    postgres_need_replication: true
+    postgres_master_host: 192.168.56.201
+    postgres_sync_replica_hosts:
+      - 192.168.56.202
+    postgres_async_replica_hosts:
+      - 192.168.56.203
+    postgres_user: user
+    postgres_user_password: user
+    postgres_db: db

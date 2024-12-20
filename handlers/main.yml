@@ -1,0 +1,11 @@
+- name: restart patroni
+  systemd:
+    name: patroni
+    state: restarted
+    enabled: yes
+
+- name: restart postgresql
+  systemd:
+    name: postgresql@16-main
+    state: restarted
+    enabled: yes

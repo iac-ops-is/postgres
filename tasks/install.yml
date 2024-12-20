@@ -1,0 +1,93 @@
+---
+- name: Add PostgreSQL GPG key
+  apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    state: present
+
+- name: Add PostgreSQL APT repository
+  apt_repository:
+    repo: "deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release | lower }}-pgdg main"
+    state: present
+    filename: "pgdg"
+    update_cache: yes
+
+- name: Install PostgreSQL 16 and required dependencies
+  apt:
+    name:
+      - postgresql-{{ postgres_version }}
+      - postgresql-client-{{ postgres_version }}
+      - postgresql-contrib-{{ postgres_version }}
+    state: present
+    update_cache: yes
+
+- name: Install Patroni
+  apt:
+    name: patroni
+    state: present
+    update_cache: yes
+
+- name: Install etcd client (if required by Patroni)
+  apt:
+    name: etcd-client
+    state: present
+    update_cache: yes
+
+- name: Ensure PostgreSQL data directory exists and is owned by postgres
+  file:
+    path: "{{ postgres_data_directory }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0700'
+
+- name: Check if PostgreSQL data directory is empty
+  command: ls -A {{ postgres_data_directory }}
+  register: data_dir_contents
+  ignore_errors: true
+  become: yes
+
+- name: Remove any existing files in the PostgreSQL data directory
+  command: rm -rf {{ postgres_data_directory }}/*
+  when: data_dir_contents.stdout != ""
+  become: yes
+
+- name: Remove the PostgreSQL data directory if it exists (forcefully)
+  file:
+    path: "{{ postgres_data_directory }}"
+    state: absent
+  when: data_dir_contents.stdout != ""
+  become: yes
+
+- name: Recreate the PostgreSQL data directory
+  file:
+    path: "{{ postgres_data_directory }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0700'
+  when: data_dir_contents.stdout != ""
+  become: yes
+
+- name: Initialize PostgreSQL data directory if not already initialized
+  command: "sudo -u postgres /usr/lib/postgresql/{{ postgres_version }}/bin/initdb -D {{ postgres_data_directory }}"
+  when: data_dir_contents.stdout == ""
+  become: true
+
+- name: Ensure PostgreSQL service is started
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Ensure Patroni service is started
+  service:
+    name: patroni
+    state: started
+    enabled: yes
+
+- name: Restart PostgreSQL service (if required)
+  systemd:
+    name: postgresql@{{ postgres_version }}-main
+    state: restarted
+    enabled: yes
+  when: data_dir_contents.stdout != ""

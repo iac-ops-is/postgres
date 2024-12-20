@@ -1,0 +1,9 @@
+postgres_data_directory: /var/lib/postgresql/data
+postgres_replica_password: supersecretpassword
+postgres_need_replication: false
+postgres_master_host: "{{ groups['db'][0] }}"
+postgres_sync_replica_hosts: []
+postgres_async_replica_hosts: []
+postgres_user: postgres
+postgres_user_password: postgres
+postgres_db: postgres

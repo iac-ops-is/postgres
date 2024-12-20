@@ -1,0 +1,59 @@
+scope: postgresql
+namespace: /db/
+name: "{{ inventory_hostname }}"
+
+restapi:
+  listen: "0.0.0.0:8008"
+  connect_address: "{{ ansible_host }}:8008"
+  authentication:
+    username: "patroni"
+    password: "{{ postgres_replica_password }}"
+
+etcd:
+  host: "{{ postgres_master_host }}:2379"
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    max_timelord_delay: 100
+    master_start_timeout: 300
+    synchronous_mode: true
+    synchronous_node_count: 1
+    standby_cluster:
+      # репликация из мастера
+      enable: true
+    postgresql:
+      use_pg_rewind: true
+      parameters:
+        unix_socket_directories: '/var/run/postgresql'
+        archive_mode: "on"
+        archive_command: "/usr/bin/gsutil -m cp %p gs://<bucket_name>/%f"
+        max_wal_senders: 10
+        max_replication_slots: 10
+        max_connections: 100
+        shared_buffers: 256MB
+        effective_cache_size: 768MB
+        work_mem: 16MB
+        maintenance_work_mem: 64MB
+        logging_collector: "on"
+        log_directory: "/var/log/postgresql"
+        log_filename: "postgresql-%Y-%m-%d_%H%M%S.log"
+        log_rotation_size: 1GB
+        log_rotation_age: 1d
+        log_statement: "ddl"
+        log_duration: "on"
+
+postgresql:
+  listen: "0.0.0.0:5432"
+  connect_address: "{{ ansible_host }}:5432"
+  data_dir: "{{ postgres_data_directory }}"
+  bin_dir: "/usr/pgsql-{{ postgres_version }}/bin"
+  authentication:
+    superuser:
+      username: "{{ postgres_user }}"
+      password: "{{ postgres_user_password }}"
+    replication:
+      username: "replicator"
+      password: "{{ postgres_replica_password }}"

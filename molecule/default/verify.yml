@@ -1,0 +1,51 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: Check if PostgreSQL is installed
+      command: psql --version
+      register: psql_version
+      changed_when: false
+    - name: Assert PostgreSQL is installed
+      assert:
+        that:
+          - "'psql' in psql_version.stdout"
+
+    - name: Check data directory
+      file:
+        path: /var/lib/postgresql/data
+        state: directory
+        owner: postgres
+        group: postgres
+      register: data_dir
+      changed_when: false
+    - name: Assert data directory exists
+      assert:
+        that:
+          - data_dir.state == "directory"
+          - data_dir.owner == "postgres"
+          - data_dir.group == "postgres"
+
+    - name: Check configuration file
+      file:
+        path: /config/postgresql.conf
+        state: file
+        owner: postgres
+        group: postgres
+      register: conf_file
+      changed_when: false
+    - name: Assert configuration file exists
+      assert:
+        that:
+          - conf_file.state == "file"
+          - conf_file.owner == "postgres"
+          - conf_file.group == "postgres"
+
+    - name: Check if synchronous_commit is set correctly
+      command: grep synchronous_commit /config/postgresql.conf
+      register: sync_commit_setting
+      changed_when: false
+    - name: Assert synchronous_commit is correct
+      assert:
+        that:
+          - "sync_commit_setting.stdout == 'synchronous_commit = on'"

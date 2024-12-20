@@ -1,0 +1,6 @@
+- name: Generate postgresql.conf from template
+  template:
+    src: postgresql.conf.j2
+    dest: "{{ postgres_config_file }}"
+  notify:
+    - restart postgresql

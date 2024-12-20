@@ -1,0 +1,15 @@
+- name: Ensure the directory exists for PostgreSQL data
+  file:
+    path: "{{ postgres_data_directory }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: 0700
+
+- name: Create Patroni config file
+  template:
+    src: patroni.yml.j2
+    dest: /etc/patroni.yml
+    owner: postgres
+    group: postgres
+    mode: 0600

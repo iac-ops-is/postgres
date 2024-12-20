@@ -1,0 +1,76 @@
+---
+- name: Converge
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure PostgreSQL is installed
+      apt:
+        name: postgresql
+        state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: Ensure PostgreSQL is installed
+      yum:
+        name: postgresql-server
+        state: present
+      when: ansible_os_family == 'RedHat'
+
+    - name: Ensure data directory exists
+      file:
+        path: "{{ postgres_data_directory }}"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: '0755'
+
+    - name: Configure PostgreSQL
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: postgres
+        group: postgres
+        mode: '0644'
+      loop:
+        - { src: 'templates/postgresql.conf.j2', dest: '{{ postgres_config_path }}/postgresql.conf' }
+        - { src: 'files/pg_hba.conf', dest: '{{ postgres_config_path }}/pg_hba.conf' }
+        - { src: 'files/pg_ident.conf', dest: '{{ postgres_config_path }}/pg_ident.conf' }
+
+    - name: Initialize PostgreSQL database
+      command: postgresql-setup initdb
+      when: ansible_os_family == 'RedHat'
+
+    - name: Ensure PostgreSQL service is started and enabled
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
+
+    - name: Create replication user
+      postgresql_user:
+        name: replica
+        password: "{{ postgres_replica_password }}"
+        priv: "ALL"
+        role_attr_flags: "REPLICATION"
+      when: postgres_need_replication | default(false)
+
+    - name: Setup synchronous replication
+      lineinfile:
+        path: "{{ postgres_data_directory }}/postgresql.conf"
+        regexp: '^synchronous_commit'
+        line: "synchronous_commit = on"
+      when: inventory_hostname in groups['postgres_sync_replica_hosts']
+      notify: Reload PostgreSQL
+
+    - name: Setup asynchronous replication
+      lineinfile:
+        path: "{{ postgres_data_directory }}/postgresql.conf"
+        regexp: '^synchronous_commit'
+        line: "synchronous_commit = off"
+      when: inventory_hostname in groups['postgres_async_replica_hosts']
+      notify: Reload PostgreSQL
+
+  handlers:
+    - name: Reload PostgreSQL
+      service:
+        name: postgresql
+        state: reloaded

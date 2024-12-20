@@ -1,0 +1,5 @@
+- name: Start Patroni service
+  systemd:
+    name: patroni
+    state: started
+    enabled: yes

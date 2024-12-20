@@ -1,0 +1,5 @@
+roles:
+  - name: iac-ops-is.postgres
+    src: https://github.com/iac-ops-is/postgres.git
+    version: master
+    scm: git

@@ -1,0 +1,33 @@
+# PostgreSQL configuration file
+
+#------------------------------------------------------------------------------
+# CONNECTIONS AND AUTHENTICATION
+#------------------------------------------------------------------------------
+listen_addresses = '*'
+port = 5432
+unix_socket_directories = '/var/run/postgresql'
+data_directory = '{{ postgres_data_directory }}'
+
+#------------------------------------------------------------------------------
+# REPLICATION SETTINGS
+#------------------------------------------------------------------------------
+wal_level = hot_standby
+max_wal_senders = 5
+hot_standby = on
+archive_mode = on
+archive_command = 'cp %p /var/lib/postgresql/archive/%f'
+
+#------------------------------------------------------------------------------
+# STANDBY CONFIGURATION
+#------------------------------------------------------------------------------
+synchronous_standby_names = '{{ postgres_sync_replica_hosts | join(",") }}'
+
+#------------------------------------------------------------------------------
+# SECURITY AND AUTHENTICATION
+#------------------------------------------------------------------------------
+password_encryption = scram-sha-256
+
+#------------------------------------------------------------------------------
+# DATABASE SETTINGS
+#------------------------------------------------------------------------------
+# Include additional configuration if needed

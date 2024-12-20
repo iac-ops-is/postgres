@@ -1,0 +1,17 @@
+---
+- name: Create
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Create Docker instance
+      community.docker.docker_container:
+        name: instance
+        image: geerlingguy/docker-ubuntu2004-ansible:latest
+        state: started
+        privileged: true
+        command: /lib/systemd/systemd
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:ro
+        env:
+          ANSIBLE_CONFIG: /molecule/ansible.cfg
